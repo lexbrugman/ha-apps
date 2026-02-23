@@ -1,4 +1,5 @@
 name: Builder
+run-name: Builder (${{ inputs.app }})
 
 on:
   workflow_dispatch:
