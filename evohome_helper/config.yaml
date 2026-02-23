@@ -13,7 +13,7 @@ options:
     location_name:
     off_temp_threshold: 15.0
   presence:
-    entities:
+    entities: []
     last_home_grace_time: 86400
     heating_schedule_grace_time: 1800
   auto_eco:
@@ -29,7 +29,7 @@ schema:
     off_temp_threshold: float
   presence:
     entities:
-      - str?
+      - str
     last_home_grace_time: int
     heating_schedule_grace_time: int
   auto_eco:
