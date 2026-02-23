@@ -21,6 +21,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Build ${{ inputs.app }} app
+    outputs:
+      archs: ${{ steps.architecture_data.outputs.archs }}
+      image: ${{ steps.info.outputs.image }}
     permissions:
       contents: write
       packages: write
@@ -52,16 +55,17 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Construct architecture flags
-        id: architecture_flags
+      - name: Construct architecture data
+        id: architecture_data
         run: |
+          echo 'archs=${{ steps.info.outputs.architectures }}' >> "$GITHUB_OUTPUT"
           echo 'arch_flags=--${{ join(fromJSON(steps.info.outputs.architectures), ' --') }}' >> "$GITHUB_OUTPUT"
 
       - name: Build ${{ inputs.app }} app
         uses: home-assistant/builder@2025.11.0
         with:
           args: |
-            ${{ steps.architecture_flags.outputs.arch_flags }} \
+            ${{ steps.architecture_data.outputs.arch_flags }} \
             --target /data/${{ inputs.app }} \
             --image "$(echo ${{ steps.info.outputs.image }} | cut -d'/' -f3)" \
             --docker-hub "ghcr.io/${{ github.repository_owner }}" \
@@ -75,3 +79,35 @@ jobs:
             git pull --rebase
             git push
           fi
+
+  cleanup:
+    runs-on: ubuntu-latest
+    name: Cleanup ${{ inputs.app }} app packages for ${{ matrix.arch }}
+    needs: build
+    strategy:
+      matrix:
+        arch: ${{ fromJSON(needs.build.outputs.archs) }}
+    permissions:
+      packages: write
+
+    steps:
+      - name: Construct package data
+        id: package_data
+        run: |
+          echo "package_name=$(echo ${{ needs.build.outputs.image }} | cut -d'/' -f3 | sed 's/{arch}/${{ matrix.arch }}/g')" >> "$GITHUB_OUTPUT"
+
+      - name: Cleanup untagged packages
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ steps.package_data.outputs.package_name }}
+          package-type: container
+          min-versions-to-keep: 0
+          delete-only-untagged-versions: true
+
+      - name: Cleanup old packages
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ steps.package_data.outputs.package_name }}
+          package-type: container
+          min-versions-to-keep: 6
+          ignore-versions: ${{ inputs.version }}
