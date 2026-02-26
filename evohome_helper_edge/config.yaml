@@ -12,6 +12,8 @@ options:
     password:
     location_name:
     off_temp_threshold: 15.0
+    away_mode: away
+    
   presence:
     entities: []
     last_home_grace_time: 86400
@@ -27,6 +29,7 @@ schema:
     password: password
     location_name: str
     off_temp_threshold: float
+    away_mode: match(away|custom|eco)
   presence:
     entities:
       - str
