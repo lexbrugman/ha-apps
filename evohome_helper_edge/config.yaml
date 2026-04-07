@@ -22,6 +22,7 @@ options:
     weather_entity:
     outside_temp_threshold: 18.0
     inside_temp_diff: 1.0
+  interval: 300
 schema:
   evohome:
     username: email
@@ -39,6 +40,7 @@ schema:
     weather_entity: str?
     outside_temp_threshold: float
     inside_temp_diff: float
+  interval: int
 arch:
   - aarch64
   - amd64
