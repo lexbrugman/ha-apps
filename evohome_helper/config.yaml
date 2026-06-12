@@ -12,6 +12,7 @@ options:
     password:
     location_name:
     off_temp_threshold: 15.0
+    away_mode: away
   presence:
     entities: []
     last_home_grace_time: 86400
@@ -21,12 +22,14 @@ options:
     weather_entity:
     outside_temp_threshold: 18.0
     inside_temp_diff: 1.0
+  interval: 300
 schema:
   evohome:
     username: email
     password: password
     location_name: str
     off_temp_threshold: float
+    away_mode: match(away|custom|eco)
   presence:
     entities:
       - str
@@ -37,6 +40,7 @@ schema:
     weather_entity: str?
     outside_temp_threshold: float
     inside_temp_diff: float
+  interval: int
 arch:
   - aarch64
   - amd64
