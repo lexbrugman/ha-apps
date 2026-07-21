@@ -3,16 +3,5 @@
   "extends": [
     "config:recommended"
   ],
-  "dependencyDashboard": false,
-  "customManagers": [
-    {
-      "customType": "regex",
-      "description": "Track Home Assistant base images in build.yaml",
-      "managerFilePatterns": ["/(^|/)build\\.yaml$/"],
-      "matchStrings": [
-        "\\s(?<depName>ghcr\\.io/home-assistant/[\\w-]+):(?<currentValue>[^@\\s]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?"
-      ],
-      "datasourceTemplate": "docker"
-    }
-  ]
+  "dependencyDashboard": false
 }

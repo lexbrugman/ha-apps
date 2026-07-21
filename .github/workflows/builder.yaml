@@ -24,15 +24,127 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  prepare:
     runs-on: ubuntu-latest
-    name: Build ${{ inputs.app }} app
+    name: Prepare ${{ inputs.app }} app
     outputs:
-      archs: ${{ steps.architecture_data.outputs.archs }}
-      image: ${{ steps.info.outputs.image }}
+      architectures: ${{ steps.info.outputs.architectures }}
+      build_matrix: ${{ steps.matrix.outputs.matrix }}
+      image_name: ${{ steps.normalize.outputs.image_name }}
+      registry_prefix: ${{ steps.normalize.outputs.registry_prefix }}
+      name: ${{ steps.normalize.outputs.name }}
+      description: ${{ steps.normalize.outputs.description }}
+      url: ${{ steps.normalize.outputs.url }}
+      package_names: ${{ steps.normalize.outputs.package_names }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Get information
+        id: info
+        uses: home-assistant/actions/helpers/info@e3fb68ebda13d88a0d695082f471ba2c83d025fb # master
+        with:
+          path: "./${{ inputs.app }}"
+
+      - name: Normalize app information
+        id: normalize
+        env:
+          IMAGE: ${{ steps.info.outputs.image }}
+          ARCHITECTURES: ${{ steps.info.outputs.architectures }}
+          NAME: ${{ steps.info.outputs.name }}
+          DESCRIPTION: ${{ steps.info.outputs.description }}
+          URL: ${{ steps.info.outputs.url }}
+        run: |
+          image_name=${IMAGE##*/}
+          echo "image_name=${image_name}" >> "$GITHUB_OUTPUT"
+          echo "registry_prefix=${IMAGE%/*}" >> "$GITHUB_OUTPUT"
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+          echo "description=${DESCRIPTION}" >> "$GITHUB_OUTPUT"
+          if [[ -n "$URL" && "$URL" != "null" ]]; then
+            echo "url=${URL}" >> "$GITHUB_OUTPUT"
+          fi
+          # Per-arch package repos ("<arch>-<name>") plus the multi-arch manifest
+          # repo ("<name>"), for the cleanup job to prune.
+          package_names=$(jq -c --arg name "$image_name" \
+            '[.[] | "\(.)-\($name)"] + [$name]' <<< "${ARCHITECTURES}")
+          echo "package_names=${package_names}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare build matrix
+        id: matrix
+        uses: home-assistant/builder/actions/prepare-multi-arch-matrix@2026.06.0
+        with:
+          architectures: ${{ steps.info.outputs.architectures }}
+          image-name: ${{ steps.normalize.outputs.image_name }}
+          registry-prefix: ${{ steps.normalize.outputs.registry_prefix }}
+
+  build:
+    runs-on: ${{ matrix.os }}
+    name: Build ${{ inputs.app }} app (${{ matrix.arch }})
+    needs: prepare
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.build_matrix) }}
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Unpack artifact
+        run: |
+          cd ./${{ inputs.app }}
+          wget -O artifact.tar.gz "${{ inputs.artifact_url }}"
+          tar -zxvf artifact.tar.gz --strip-components=1 -C rootfs
+
+      - name: Build ${{ inputs.app }} app
+        uses: home-assistant/builder/actions/build-image@2026.06.0
+        with:
+          arch: ${{ matrix.arch }}
+          container-registry-password: ${{ secrets.GITHUB_TOKEN }}
+          context: "./${{ inputs.app }}"
+          image: ${{ matrix.image }}
+          image-tags: ${{ inputs.version }}
+          cache-gha-scope: ${{ inputs.app }}-${{ matrix.arch }}
+          labels: |
+            io.hass.type=app
+            io.hass.name=${{ needs.prepare.outputs.name }}
+            io.hass.description=${{ needs.prepare.outputs.description }}
+            ${{ needs.prepare.outputs.url && format('io.hass.url={0}', needs.prepare.outputs.url) || '' }}
+          push: true
+          version: ${{ inputs.version }}
+
+  manifest:
+    runs-on: ubuntu-latest
+    name: Publish ${{ inputs.app }} multi-arch manifest
+    needs: [prepare, build]
+    permissions:
+      id-token: write
+      packages: write
+
+    steps:
+      - name: Publish multi-arch manifest
+        uses: home-assistant/builder/actions/publish-multi-arch-manifest@2026.06.0
+        with:
+          architectures: ${{ needs.prepare.outputs.architectures }}
+          container-registry-password: ${{ secrets.GITHUB_TOKEN }}
+          image-name: ${{ needs.prepare.outputs.image_name }}
+          image-tags: ${{ inputs.version }}
+          registry-prefix: ${{ needs.prepare.outputs.registry_prefix }}
+
+  finalize:
+    runs-on: ubuntu-latest
+    name: Commit ${{ inputs.app }} version
+    needs: manifest
     permissions:
       contents: write
-      packages: write
 
     steps:
       - name: Check out the repository
@@ -41,41 +153,6 @@ jobs:
       - name: Set version
         run: |
           yq e '.version = "${{ inputs.version }}"' -i ./${{ inputs.app }}/config.yaml
-
-      - name: Get information
-        id: info
-        uses: home-assistant/actions/helpers/info@e3fb68ebda13d88a0d695082f471ba2c83d025fb # master
-        with:
-          path: "./${{ inputs.app }}"
-
-      - name: Unpack artifact
-        run: |
-          cd ./${{ inputs.app }}
-          wget -O artifact.tar.gz ${{ inputs.artifact_url }}
-          tar -zxvf artifact.tar.gz --strip-components=1 -C rootfs
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4.4.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Construct architecture data
-        id: architecture_data
-        run: |
-          echo 'archs=${{ steps.info.outputs.architectures }}' >> "$GITHUB_OUTPUT"
-          echo 'arch_flags=--${{ join(fromJSON(steps.info.outputs.architectures), ' --') }}' >> "$GITHUB_OUTPUT"
-
-      - name: Build ${{ inputs.app }} app
-        uses: home-assistant/builder@2025.11.0
-        with:
-          args: |
-            ${{ steps.architecture_data.outputs.arch_flags }} \
-            --target /data/${{ inputs.app }} \
-            --image "$(echo ${{ steps.info.outputs.image }} | cut -d'/' -f3)" \
-            --docker-hub "ghcr.io/${{ github.repository_owner }}" \
-            --addon
 
       - name: Commit version
         run: |
@@ -95,24 +172,19 @@ jobs:
 
   cleanup:
     runs-on: ubuntu-latest
-    name: Cleanup ${{ inputs.app }} app packages for ${{ matrix.arch }}
-    needs: build
+    name: Cleanup ${{ inputs.app }} package ${{ matrix.package }}
+    needs: [prepare, manifest]
     strategy:
       matrix:
-        arch: ${{ fromJSON(needs.build.outputs.archs) }}
+        package: ${{ fromJSON(needs.prepare.outputs.package_names) }}
     permissions:
       packages: write
 
     steps:
-      - name: Construct package data
-        id: package_data
-        run: |
-          echo "package_name=$(echo ${{ needs.build.outputs.image }} | cut -d'/' -f3 | sed 's/{arch}/${{ matrix.arch }}/g')" >> "$GITHUB_OUTPUT"
-
       - name: Cleanup untagged packages
         uses: actions/delete-package-versions@v5.0.0
         with:
-          package-name: ${{ steps.package_data.outputs.package_name }}
+          package-name: ${{ matrix.package }}
           package-type: container
           min-versions-to-keep: 0
           delete-only-untagged-versions: true
@@ -120,7 +192,7 @@ jobs:
       - name: Cleanup old packages
         uses: actions/delete-package-versions@v5.0.0
         with:
-          package-name: ${{ steps.package_data.outputs.package_name }}
+          package-name: ${{ matrix.package }}
           package-type: container
           min-versions-to-keep: 6
           ignore-versions: ${{ inputs.version }}
