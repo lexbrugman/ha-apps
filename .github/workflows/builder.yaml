@@ -35,6 +35,7 @@ jobs:
       name: ${{ steps.normalize.outputs.name }}
       description: ${{ steps.normalize.outputs.description }}
       url: ${{ steps.normalize.outputs.url }}
+      packages: ${{ steps.normalize.outputs.packages }}
     permissions:
       contents: read
 
@@ -52,6 +53,7 @@ jobs:
         id: normalize
         env:
           IMAGE: ${{ steps.info.outputs.image }}
+          ARCHITECTURES: ${{ steps.info.outputs.architectures }}
           NAME: ${{ steps.info.outputs.name }}
           DESCRIPTION: ${{ steps.info.outputs.description }}
           URL: ${{ steps.info.outputs.url }}
@@ -71,6 +73,11 @@ jobs:
           if [[ -n "$url" && "$url" != "null" ]]; then
             echo "url=${url}" >> "$GITHUB_OUTPUT"
           fi
+          # The multi-arch manifest repo ("<name>") plus its per-arch build repos
+          # ("<arch>-<name>"), comma-joined for the cleanup job to prune.
+          packages=$(jq -r --arg name "$image_name" \
+            '([$name] + [.[] | "\(.)-\($name)"]) | join(",")' <<< "${ARCHITECTURES}")
+          echo "packages=${packages}" >> "$GITHUB_OUTPUT"
 
       - name: Prepare build matrix
         id: matrix
@@ -173,3 +180,24 @@ jobs:
             sleep $((RANDOM % 5 + 2))
           done
           exit 1
+
+  cleanup:
+    runs-on: ubuntu-latest
+    name: Prune ${{ inputs.app }} old versions
+    needs: [prepare, manifest]
+    permissions:
+      packages: write
+
+    steps:
+      # Multi-arch–aware pruning: unlike actions/delete-package-versions, this
+      # protects the untagged platform children, cosign signatures and attestations
+      # of kept images, so it can prune without corrupting the multi-arch manifests.
+      - name: Prune old package versions
+        uses: dataaxiom/ghcr-cleanup-action@v1.2.2
+        with:
+          packages: ${{ needs.prepare.outputs.packages }}
+          keep-n-tagged: 6
+          delete-untagged: true
+          delete-partial-images: true
+          delete-orphaned-images: true
+          validate: true
