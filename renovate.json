@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "dependencyDashboard": false,
+  "packageRules": [
+    {
+      "description": "Pin Docker images to digests (GitHub Actions stay on tags)",
+      "matchDatasources": ["docker"],
+      "pinDigests": true
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track Home Assistant base images in build.yaml",
+      "managerFilePatterns": ["/(^|/)build\\.yaml$/"],
+      "matchStrings": [
+        "\\s(?<depName>ghcr\\.io/home-assistant/[\\w-]+):(?<currentValue>[^@\\s]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ]
+}

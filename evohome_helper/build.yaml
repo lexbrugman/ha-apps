@@ -1,3 +1,3 @@
 build_from:
-  aarch64: ghcr.io/home-assistant/aarch64-base-python:3.14-alpine3.23
-  amd64: ghcr.io/home-assistant/amd64-base-python:3.14-alpine3.23
+  aarch64: ghcr.io/home-assistant/aarch64-base-python:3.14-alpine3.23@sha256:7b9f71ac6fac360fff4faabd695325b081ce486d6eec45824dd6f5c7bb19dde8
+  amd64: ghcr.io/home-assistant/amd64-base-python:3.14-alpine3.23@sha256:7663d60e74ea5f0d261da155bb0700643312b2ee6950d80be392edc01efc7986

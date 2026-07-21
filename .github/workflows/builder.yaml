@@ -38,7 +38,7 @@ jobs:
 
       - name: Get information
         id: info
-        uses: home-assistant/actions/helpers/info@master
+        uses: home-assistant/actions/helpers/info@e3fb68ebda13d88a0d695082f471ba2c83d025fb # master
         with:
           path: "./${{ inputs.app }}"
 
@@ -97,7 +97,7 @@ jobs:
           echo "package_name=$(echo ${{ needs.build.outputs.image }} | cut -d'/' -f3 | sed 's/{arch}/${{ matrix.arch }}/g')" >> "$GITHUB_OUTPUT"
 
       - name: Cleanup untagged packages
-        uses: actions/delete-package-versions@v5
+        uses: actions/delete-package-versions@v5.0.0
         with:
           package-name: ${{ steps.package_data.outputs.package_name }}
           package-type: container
@@ -105,7 +105,7 @@ jobs:
           delete-only-untagged-versions: true
 
       - name: Cleanup old packages
-        uses: actions/delete-package-versions@v5
+        uses: actions/delete-package-versions@v5.0.0
         with:
           package-name: ${{ steps.package_data.outputs.package_name }}
           package-type: container
