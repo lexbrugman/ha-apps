@@ -58,13 +58,20 @@ jobs:
           DESCRIPTION: ${{ steps.info.outputs.description }}
           URL: ${{ steps.info.outputs.url }}
         run: |
-          image_name=${IMAGE##*/}
+          # The info helper emits scalars JSON-encoded (yq -o=json), i.e. wrapped
+          # in literal double quotes. Decode with jq -r before use, or the quotes
+          # end up baked into the image reference and break the build.
+          image=$(jq -r . <<< "${IMAGE}")
+          name=$(jq -r . <<< "${NAME}")
+          description=$(jq -r . <<< "${DESCRIPTION}")
+          url=$(jq -r . <<< "${URL}")
+          image_name=${image##*/}
           echo "image_name=${image_name}" >> "$GITHUB_OUTPUT"
-          echo "registry_prefix=${IMAGE%/*}" >> "$GITHUB_OUTPUT"
-          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
-          echo "description=${DESCRIPTION}" >> "$GITHUB_OUTPUT"
-          if [[ -n "$URL" && "$URL" != "null" ]]; then
-            echo "url=${URL}" >> "$GITHUB_OUTPUT"
+          echo "registry_prefix=${image%/*}" >> "$GITHUB_OUTPUT"
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+          echo "description=${description}" >> "$GITHUB_OUTPUT"
+          if [[ -n "$url" && "$url" != "null" ]]; then
+            echo "url=${url}" >> "$GITHUB_OUTPUT"
           fi
           # Per-arch package repos ("<arch>-<name>") plus the multi-arch manifest
           # repo ("<name>"), for the cleanup job to prune.
