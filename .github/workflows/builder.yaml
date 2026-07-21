@@ -198,6 +198,7 @@ jobs:
           packages: ${{ needs.prepare.outputs.packages }}
           keep-n-tagged: 6
           delete-untagged: true
+          delete-ghost-images: true
           delete-partial-images: true
           delete-orphaned-images: true
           validate: true
