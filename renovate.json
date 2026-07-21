@@ -4,13 +4,6 @@
     "config:recommended"
   ],
   "dependencyDashboard": false,
-  "packageRules": [
-    {
-      "description": "Pin Docker images to digests (GitHub Actions stay on tags)",
-      "matchDatasources": ["docker"],
-      "pinDigests": true
-    }
-  ],
   "customManagers": [
     {
       "customType": "regex",
