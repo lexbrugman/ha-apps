@@ -79,8 +79,8 @@ jobs:
 
       - name: Commit version
         run: |
-          git config --global user.name "Home Assistant app builder"
-          git config --global user.email "builder@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add ./${{ inputs.app }}/config.yaml
           git commit -m "New ${{ inputs.app }} build (${{ inputs.version }})" || exit 0
           # Same-app builds are serialized by the concurrency group, so a rebase
