@@ -43,6 +43,15 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v7.0.1
 
+      - name: Validate app
+        env:
+          APP: ${{ inputs.app }}
+        run: |
+          if [[ ! -d "./$APP" ]]; then
+            echo "::error::Unknown app '$APP' — no such directory (check the dispatched slug)"
+            exit 1
+          fi
+
       - name: Get information
         id: info
         uses: home-assistant/actions/helpers/info@e3fb68ebda13d88a0d695082f471ba2c83d025fb # master
