@@ -35,7 +35,6 @@ jobs:
       name: ${{ steps.normalize.outputs.name }}
       description: ${{ steps.normalize.outputs.description }}
       url: ${{ steps.normalize.outputs.url }}
-      package_names: ${{ steps.normalize.outputs.package_names }}
     permissions:
       contents: read
 
@@ -53,7 +52,6 @@ jobs:
         id: normalize
         env:
           IMAGE: ${{ steps.info.outputs.image }}
-          ARCHITECTURES: ${{ steps.info.outputs.architectures }}
           NAME: ${{ steps.info.outputs.name }}
           DESCRIPTION: ${{ steps.info.outputs.description }}
           URL: ${{ steps.info.outputs.url }}
@@ -73,11 +71,6 @@ jobs:
           if [[ -n "$url" && "$url" != "null" ]]; then
             echo "url=${url}" >> "$GITHUB_OUTPUT"
           fi
-          # Per-arch package repos ("<arch>-<name>") plus the multi-arch manifest
-          # repo ("<name>"), for the cleanup job to prune.
-          package_names=$(jq -c --arg name "$image_name" \
-            '[.[] | "\(.)-\($name)"] + [$name]' <<< "${ARCHITECTURES}")
-          echo "package_names=${package_names}" >> "$GITHUB_OUTPUT"
 
       - name: Prepare build matrix
         id: matrix
@@ -180,30 +173,3 @@ jobs:
             sleep $((RANDOM % 5 + 2))
           done
           exit 1
-
-  cleanup:
-    runs-on: ubuntu-latest
-    name: Cleanup ${{ inputs.app }} package ${{ matrix.package }}
-    needs: [prepare, manifest]
-    strategy:
-      matrix:
-        package: ${{ fromJSON(needs.prepare.outputs.package_names) }}
-    permissions:
-      packages: write
-
-    steps:
-      - name: Cleanup untagged packages
-        uses: actions/delete-package-versions@v5.0.0
-        with:
-          package-name: ${{ matrix.package }}
-          package-type: container
-          min-versions-to-keep: 0
-          delete-only-untagged-versions: true
-
-      - name: Cleanup old packages
-        uses: actions/delete-package-versions@v5.0.0
-        with:
-          package-name: ${{ matrix.package }}
-          package-type: container
-          min-versions-to-keep: 6
-          ignore-versions: ${{ inputs.version }}
