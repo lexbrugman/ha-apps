@@ -1,4 +1,4 @@
-ARG BUILD_FROM=ghcr.io/home-assistant/base-python:3.14-alpine3.23@sha256:22a20043ded03472ec1fcac3137e97aa209f24621257531dcac45a0ac4b57c1d
+ARG BUILD_FROM=ghcr.io/home-assistant/base-python:3.14-alpine3.23@sha256:7af3473d769217d2ea7f8a3b185757b2bae769abf274668f9c4fd9ad4ae77994
 FROM ${BUILD_FROM}
 
 WORKDIR /opt/evohome-helper
