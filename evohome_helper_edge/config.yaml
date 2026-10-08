@@ -1,5 +1,5 @@
 name: Evohome Helper (edge)
-version: dev-c3ed11c
+version: dev-f78f37f
 description: This service adds presence detection and other cost saving measures to any Honeywell Evohome installation
 url: https://github.com/lexbrugman/evohome-helper
 image: 'ghcr.io/lexbrugman/evohome-helper-edge'
