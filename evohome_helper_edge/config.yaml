@@ -16,6 +16,7 @@ options:
     entities: []
     last_home_grace_time: 86400
     heating_schedule_grace_time: 1800
+    away_delay: 300
   auto_eco:
     enabled: true
     weather_entity:
@@ -33,6 +34,7 @@ schema:
       - str
     last_home_grace_time: int
     heating_schedule_grace_time: int
+    away_delay: int
   auto_eco:
     enabled: bool
     weather_entity: str?
