@@ -32,15 +32,15 @@ schema:
   presence:
     entities:
       - str
-    last_home_grace_time: int
-    heating_schedule_grace_time: int
-    away_delay: int
+    last_home_grace_time: int(0,)
+    heating_schedule_grace_time: int(0,)
+    away_delay: int(0,)
   auto_eco:
     enabled: bool
     weather_entity: str?
     outside_temp_threshold: float
     inside_temp_diff: float
-  interval: int
+  interval: int(1,)
 arch:
   - aarch64
   - amd64

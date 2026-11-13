@@ -1,0 +1,65 @@
+---
+configuration:
+  evohome:
+    name: Evohome
+    description: The Evohome (Total Connect Comfort) account and what to do when no-one is home.
+    fields:
+      username:
+        name: Username
+        description: The e-mail address of the Evohome account.
+      password:
+        name: Password
+        description: The password of the Evohome account.
+      location_name:
+        name: Location name
+        description: The name of the location in the Evohome account, exactly as shown in the Evohome app.
+      away_mode:
+        name: Away mode
+        description: >-
+          The Evohome mode to switch to when no-one is home: "away", "eco" (economy) or "custom".
+  presence:
+    name: Presence
+    description: Who counts as being home, and how long to wait before acting on it.
+    fields:
+      entities:
+        name: Presence entities
+        description: >-
+          Home Assistant entities that report "home" when someone is home, such as person.* or device_tracker.* entities.
+      last_home_grace_time:
+        name: Daily use window (seconds)
+        description: >-
+          The home counts as being in daily use for this long after the last person left. Only a home in daily use
+          is pre-heated; one that has been empty for longer (a holiday) is not.
+      heating_schedule_grace_time:
+        name: Pre-heat window (seconds)
+        description: >-
+          After the schedule raises a setpoint, keep heating for this long even if no-one is home yet, so the home
+          is warm on arrival.
+      away_delay:
+        name: Away delay (seconds)
+        description: >-
+          Wait this long after the last person left before switching to the away mode, so a phone that briefly
+          drops off the network does not turn the heating down. Set to 0 to switch right away.
+  auto_eco:
+    name: Auto-eco
+    description: Use Evohome's economy mode when it is warm outside.
+    fields:
+      enabled:
+        name: Enabled
+        description: Switch to economy mode when it is warm enough outside. Needs a weather entity.
+      weather_entity:
+        name: Weather entity
+        description: The Home Assistant weather entity that provides the outside temperature, such as weather.home.
+      outside_temp_threshold:
+        name: Outside temperature threshold (°C)
+        description: Economy mode is never used while it is colder outside than this.
+      inside_temp_diff:
+        name: Inside temperature difference (°C)
+        description: >-
+          Economy mode is used when the outside temperature is within this many degrees of the highest scheduled
+          setpoint, or above it.
+  interval:
+    name: Interval (seconds)
+    description: >-
+      How often the thermostat is checked. Someone arriving at an empty home is acted on right away, regardless
+      of the interval.
