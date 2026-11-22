@@ -202,7 +202,7 @@ jobs:
       # protects the untagged platform children, cosign signatures and attestations
       # of kept images, so it can prune without corrupting the multi-arch manifests.
       - name: Prune old package versions
-        uses: dataaxiom/ghcr-cleanup-action@v1.2.2
+        uses: dataaxiom/ghcr-cleanup-action@v1.3.0
         with:
           packages: ${{ needs.prepare.outputs.packages }}
           keep-n-tagged: 6
